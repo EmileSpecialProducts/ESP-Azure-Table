@@ -4,7 +4,7 @@
 
 $RND = $(Get-Random -Minimum 10000 -Maximum 99999)
 
-#$RND = 222222
+#$RND = 222223
 $ResourceGroup = "ESP-RSGroupe$RND"
 $location = "westeurope"
 $StorageAccountName = "esptablestorage$RND"
@@ -26,8 +26,8 @@ New-AzStorageAccount -ResourceGroupName $ResourceGroup `
 # https://learn.microsoft.com/en-us/azure/storage/common/storage-network-security?tabs=azure-powershell
 Update-AzStorageAccountNetworkRuleSet -ResourceGroupName $ResourceGroup -Name $StorageAccountName -DefaultAction Allow
 
-#Set-AzStorageAccount -Name $StorageAccountName -ResourceGroupName $ResourceGroup -EnableHttpsTrafficOnly $false 
-az storage account update -g $ResourceGroup -n $StorageAccountName --https-only false
+Set-AzStorageAccount -Name $StorageAccountName -ResourceGroupName $ResourceGroup -EnableHttpsTrafficOnly $false 
+Get-AzStorageAccount -Name $StorageAccountName -ResourceGroupName $ResourceGroup
 
 #$Context = $storageAccount.Context
 $Context = $(Get-AzStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName).Context
@@ -63,6 +63,7 @@ $TableUrl = (Get-AzStorageAccount -ResourceGroupName $ResourceGroup -Name $Stora
 #########################################################################################################################################################
 # Creat 3 access keys one for read(web site) and one for append and read ( for the ESP ) and one for the adminstrator scrips   
 #########################################################################################################################################################
+$Context = $(Get-AzStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName).Context
 $sasTokenRead = $(New-AzStorageAccountSASToken -Context $Context -Service Table -Permission "r" -Protocol HttpsOrHttp -ResourceType Object -ExpiryTime (Get-Date).AddDays(3650) )
 $sasTokenRead = '?' + $sasTokenRead.TrimStart('?'); # The leading question mark '?' of the created SAS token will be removed in a future release.
 $EndpointRead = "$TableUrl$TableName$sasTokenRead"
@@ -169,7 +170,6 @@ function AppendTableData {
 }
 ###############################################################################################################################################################################
 
-
 ###############################################################################################################################################################################
 <#
 .SYNOPSIS
@@ -209,7 +209,7 @@ function UpdateTableData {
     } else {
         $response=AppendTableData $EndPoint $PartitionKey $TableData 
     }
-    rerurn $response
+    return $response
 }
 ###############################################################################################################################################################################
 
@@ -228,6 +228,9 @@ $ParameterTable.LedColor    = (2 * 65536) + (1 * 256) + 3
 $ParameterTable.TemperatureInterval = 50
 UpdateTableData $EndpointAppend "Parameters" $ParameterTable "DeviceName" 
 
+$Header = @{
+    'Accept' = 'application/json;odata=nometadata' 
+}
 Invoke-RestMethod -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'Parameters'" -Header $Header  -ContentType "application/json" | ConvertTo-Json
 
 $TableData = @{    
@@ -250,6 +253,14 @@ $TableData = @{
 }
 AppendTableData $httpEndpointAppend "PowershellScript" $TableData 
 
+$Header = @{
+    'Accept' = 'application/json;odata=nometadata' 
+}
+Invoke-RestMethod -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'Parameters'" -Header $Header  -ContentType "application/json" | ConvertTo-Json
+
+$Header = @{
+    'Accept' = 'application/json;odata=nometadata' 
+}
 Invoke-RestMethod -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'PowershellScript'" -Header $Header  -ContentType "application/json" | ConvertTo-Json
 
 ###############################################################################################################################################################################
@@ -375,8 +386,7 @@ Invoke-RestMethod -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq
 Invoke-RestMethod -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'Parameters'&`$top=1 " -Header $Header  -ContentType "application/json" | ConvertTo-Json 
 Invoke-RestMethod -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'Parameters'&`$select=DeviceName,LedColor " -Header $Header  -ContentType "application/json" | ConvertTo-Json 
 Invoke-RestMethod -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'Parameters' and DeviceName eq 'ESP-TABLE_ESP32-S3_68:B6:B3:20:F8:1C'&`$top=1 " -Header $Header  -ContentType "application/json" | ConvertTo-Json
-
-Invoke-WebRequest -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'Parameters' and DeviceName eq 'ESP-TABLE_ESP32-S3_68:B6:B3:20:F8:1C'&`$top=1 " -Header $Header  -ContentType "application/json" | ConvertTo-Json 
+Invoke-WebRequest -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'Parameters' and DeviceName eq 'ESP-TABLE_ESP32-S3_68:B6:B3:20:F8:1C'&`$top=1 " -Header $Header  -ContentType "application/json" 
 Invoke-RestMethod -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'PowershellScript'" -Header $Header  -ContentType "application/json" | ConvertTo-Json 
 Invoke-RestMethod -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'ESPReboot'" -Header $Header  -ContentType "application/json" | ConvertTo-Json 
 Invoke-RestMethod -Method Get -Uri "$httpEndpointAppend&`$filter=PartitionKey eq 'CoreTemperatures'" -Header $Header  -ContentType "application/json" | ConvertTo-Json 

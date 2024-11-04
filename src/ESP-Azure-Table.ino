@@ -28,16 +28,10 @@
 #define DBG_OUTPUT_PORT Serial
 // USBSerial Serial Serial1 Serial2
 
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP);
-Adafruit_NeoPixel pixels(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
-
-// WiFiClient Client;
-// HTTPClient http;
-unsigned long ReloadInterval=60;
-unsigned long LedInterval=100;
-unsigned long LedColor = pixels.Color(7, 0, 0);
-unsigned long TemperatureInterval=600;
+unsigned long ReloadInterval = 60;
+unsigned long LedInterval = 100;
+unsigned long LedColor = ((uint32_t)7 << 16) | ((uint32_t)0 << 8) | 0 ;
+unsigned long TemperatureInterval = 600;
 bool currentLed = false ;
 unsigned long PreviousLedInterval = 0;
 unsigned long PreviousTemperatureInterval = TemperatureInterval;
@@ -62,8 +56,12 @@ JsonDocument jsonDocument;
 #define PIN_BOOT 0
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
 #define PIN_BOOT 0
+#if not defined(PIN_NEOPIXEL)
+#define PIN_NEOPIXEL 48
+#endif
 #endif
 
+ 
 #define USEWIFIMANAGER
 #ifndef USEWIFIMANAGER
     const char *ssid = "SSID_ROUTER";
@@ -86,6 +84,13 @@ const char *host = PROJECTNAME"-S2";
 const char *host = PROJECTNAME"-S3";
 #endif
 String DeviceName = PROJECTNAME;
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
+Adafruit_NeoPixel pixels(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+
+// WiFiClient Client;
+// HTTPClient http;
 
 String urlencode(String str)
 {
@@ -348,7 +353,6 @@ String reset_reason(int reason)
   return ("NO_MEAN");
 }
 
-
 void setup(void)
 {
   pinMode(PIN_BOOT, INPUT_PULLUP);
@@ -518,6 +522,7 @@ void setup(void)
 
 #if not defined(ESP8266)
 #if ESP_ARDUINO_VERSION != ESP_ARDUINO_VERSION_VAL(2, 0, 17)
+    String message = "";
     // [ESP::getFlashChipMode crashes on ESP32S3 boards](https://github.com/espressif/arduino-esp32/issues/9816)
     switch (ESP.getFlashChipMode())
     {

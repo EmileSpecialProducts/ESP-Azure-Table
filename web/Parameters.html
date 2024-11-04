@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Events</title>
+    <script src="endpoint.js"></script>
+    <script src="tablebuilder.js"></script>
+    <link type="text/css" rel="stylesheet" href="main.css" />
+    <link type="text/css" rel="stylesheet" href="https://cdn.dcodes.net/2/tables1/css/dc_tables1.css" />
+</head>
+
+<body onload="showEvents()">
+
+    <h2>Lastlogs</h2>
+
+    <div id='showTable'></div>
+
+    <script>
+         function showEvents() {
+                var AllTableData = { value: [] };
+
+                function CreateHttpReq(filter,selector, onloadfunc) {
+                    const xhttp = new XMLHttpRequest();
+                    xhttp.onload = function () {
+                        NextPartitionKey = this.getResponseHeader('x-ms-continuation-NextPartitionKey');
+                        NextRowKey = this.getResponseHeader('x-ms-continuation-NextRowKey');
+                        Tdata = JSON.parse(this.responseText);
+                        AllTableData.value = AllTableData.value.concat(Tdata.value);
+                        if (NextRowKey === null || NextPartitionKey === null) {
+                            onloadfunc();
+                        } else {
+                            filter = "&NextPartitionKey=" + NextPartitionKey + "&NextRowKey=" + NextRowKey;
+                            CreateHttpReq(filter,selector, onloadfunc)
+                        }
+                    }
+                    xhttp.open("GET", TableEndpoint +filter+ selector);
+                    xhttp.setRequestHeader("Accept", "application/json;odata=nometadata");
+                    xhttp.send();
+                }
+                CreateHttpReq("&$filter=PartitionKey eq 'Parameters'","", function () { createTable("showTable", AllTableData); })
+            }
+    </script>
+
+
+</body>
+
+</html>

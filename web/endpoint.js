@@ -1,0 +1,1 @@
+const TableEndpoint = 'https://esptablestorage222222.table.core.windows.net/EspLogData?sv=2022-11-02&ss=t&srt=o&spr=https,http&se=2034-11-01T07%3A49%3A28Z&sp=r&sig=aro3F0GOCN86qIQQZPf0YmmLjTVFvJNzFerSdbapeSY%3D';

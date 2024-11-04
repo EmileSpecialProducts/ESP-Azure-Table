@@ -1,0 +1,2 @@
+#define AZURETABLEENDPOINT       "http://esptablestorage222222.table.core.windows.net/EspLogData?sv=2022-11-02&ss=t&srt=o&spr=https,http&se=2034-11-01T07%3A49%3A29Z&sp=rau&sig=gFQ%2BMMzWy26weRtInwh%2FbImy3IfwjuZkqGBSjqxzGpA%3D"
+#define AZURETABLEHTTPSENDPOINT "https://esptablestorage222222.table.core.windows.net/EspLogData?sv=2022-11-02&ss=t&srt=o&spr=https,http&se=2034-11-01T07%3A49%3A29Z&sp=rau&sig=gFQ%2BMMzWy26weRtInwh%2FbImy3IfwjuZkqGBSjqxzGpA%3D"

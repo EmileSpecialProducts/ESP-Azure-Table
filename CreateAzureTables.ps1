@@ -58,11 +58,12 @@ $CorsRules = (
 Remove-AzStorageCORSRule -ServiceType Table -Context $Context
 Set-AzStorageCORSRule -ServiceType Table -Context $Context -CorsRules $CorsRules
 Get-AzStorageCORSRule -ServiceType Table -Context $Context | ConvertTo-Json
-$TableUrl = (Get-AzStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName | Select-Object PrimaryEndpoints).PrimaryEndpoints.Table
 
 #########################################################################################################################################################
 # Creat 3 access keys one for read(web site) and one for append and read ( for the ESP ) and one for the adminstrator scrips   
 #########################################################################################################################################################
+
+$TableUrl = (Get-AzStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName | Select-Object PrimaryEndpoints).PrimaryEndpoints.Table
 $Context = $(Get-AzStorageAccount -ResourceGroupName $ResourceGroup -Name $StorageAccountName).Context
 $sasTokenRead = $(New-AzStorageAccountSASToken -Context $Context -Service Table -Permission "r" -Protocol HttpsOrHttp -ResourceType Object -ExpiryTime (Get-Date).AddDays(3650) )
 $sasTokenRead = '?' + $sasTokenRead.TrimStart('?'); # The leading question mark '?' of the created SAS token will be removed in a future release.
@@ -306,8 +307,8 @@ do
     $NextPartitionKey = $response.Headers.'x-ms-continuation-NextPartitionKey'
     $NextRowKey = $response.Headers.'x-ms-continuation-NextRowKey'
     $Filter = "NextPartitionKey=$NextPartitionKey&NextRowKey=$NextRowKey$select"
-    } while ($NextPartitionKey -And ($response.StatusCode -eq 200) )
-    Return $selection
+} while ($NextPartitionKey -And ($response.StatusCode -eq 200) )
+Return $selection
 }
 ###############################################################################################################################################################################
 
@@ -318,15 +319,16 @@ $TableData = @{
 }
 1..2110 | % {
     $TableData.MyFreeText = "Created a Entry $_" 
-    $e=
+    $e=AppendTableData $EndpointAppend "PowershellScript" $TableData 
 }
+
 #>
 
 $Filter = "`$filter=PartitionKey eq 'PowershellScript'"
 $select = "&`$select=Timestamp,MyFreeText"
-$val = GetLageTableData $httpEndpointAppend $Filter $select 
-$val.value.Length
-$val.value | ConvertTo-Json
+$response = GetLageTableData $httpEndpointAppend $Filter $select 
+$response.value.Length
+$response.value | ConvertTo-Json
 
 GetLageTableData $httpEndpointAppend "`$filter=PartitionKey eq 'Parameters'" | ConvertTo-Json -Depth 4
 
@@ -345,11 +347,18 @@ $Deletedate = $([DateTime]::UtcNow.AddDays(-1).ToString('u').replace(' ','T'))
 $Deletedate = $([DateTime]::UtcNow.AddHours(-1).ToString('u').replace(' ', 'T'))
 
 write-host "Delete old Reboots records older then $Deletedate"
-$PartitionKey ="ESPReboots"
+#$PartitionKey = "CoreTemperatures"
+#$PartitionKey = "PowershellScript"
+$PartitionKey = "ESPReboots"
+
+$Filter = "`$filter=PartitionKey eq '$PartitionKey' and Timestamp le datetime`'$Deletedate`'"
+$select = "&`$select=PartitionKey,RowKey"
+$response = GetLageTableData $httpEndpointAppend $Filter $select 
+
 $Header = @{
-    'Accept' = 'application/json;odata=nometadata' 
+    'Accept'   = 'application/json;odata=nometadata'
+    'If-Match' = '*' 
 }
-$response = Invoke-RestMethod -Method Get -Uri $EndpointAll"`&`$filter=PartitionKey eq `'$PartitionKey`' and Timestamp le datetime`'$Deletedate`'" -Header $Header -ContentType "application/json"
 # delete all the separate reacords as the filter will not work for the Delete rest API 
 foreach ($Row IN $response.value)
 {
@@ -357,11 +366,7 @@ foreach ($Row IN $response.value)
     $PartitionKey = $Row.PartitionKey;
     $selector = "(PartitionKey='$PartitionKey',RowKey='$RowKey')";
     $EndPoint = $EndpointAll.Replace('?', "$selector`?")
-    $Header = @{
-        'Accept'   = 'application/json;odata=nometadata'
-        'If-Match' = '*' 
-    }
-    Invoke-RestMethod -Method Delete -Uri "$EndPoint" -Header $Header -ContentType "application/json"
+    Invoke-RestMethod -Method Delete -Uri "$EndPoint" -Header $Header -ContentType "application/json" | Out-Null
 }
 write-host "Deleted $($response.value.Length) entrys"
 

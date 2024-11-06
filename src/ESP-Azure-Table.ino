@@ -552,6 +552,8 @@ void setup(void)
 #endif
     doc["resetReason"] = reset_reason(rtc_get_reset_reason(0));
     doc["ProjectName"] = PROJECTNAME;
+    doc["esp_idf_version"] =esp_get_idf_version();
+    doc["arduino_version"] = String(ESP_ARDUINO_VERSION_MAJOR) + "." +String(ESP_ARDUINO_VERSION_MINOR) + "." + String(ESP_ARDUINO_VERSION_PATCH);
     doc["BuildDate"] = String(__DATE__ " " __TIME__);
     Table_append("ESPReboots", doc);
   }

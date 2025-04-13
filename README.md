@@ -1,3 +1,8 @@
+<p align="center">
+  <a href="https://buymeacoffee.com/emilespecialproducts">
+    <img alt="BuymeaCoffee" src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png">
+  </a>
+</p>
 This project will create a Azure Table and Static web site using Powershell script
 And the ESP will get parameters form the table 
 And log some information to the Table. 
